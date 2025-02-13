@@ -157,7 +157,7 @@ namespace {
         try
         {
             auto const &lib_name{ path.stem().string() };
-            std::istringstream  input{ get_process_output("dumpbin.exe", { "/SYMBOLS", lib_name }) };
+            std::istringstream  input{ get_process_output("dumpbin.exe", { "/SYMBOLS", path.string() })};
 
             for (std::string line; std::getline(input, line);) {
                 std::smatch fields;
