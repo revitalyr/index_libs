@@ -14,6 +14,7 @@ namespace sqlite_orm {
     export using sqlite_orm::make_column;
     export using sqlite_orm::make_table;
     export using sqlite_orm::c;
+    export using sqlite_orm::like;
 
     export using sqlite_orm::make_error_code;
 
