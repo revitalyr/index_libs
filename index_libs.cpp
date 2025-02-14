@@ -112,13 +112,13 @@ namespace db {
     using sqlite_orm::is_operator_argument;
     using sqlite_orm::unwrap_expression_t;
 
-
     struct Symbol {
         std::string m_library;
         std::string m_mangled;
         std::string m_unmangled;
         std::string m_symbol;
     public:
+        Symbol() = default;
         Symbol(std::string const &library, std::string const &mangled, std::string const &unmangled)
             : m_library(library), m_mangled(mangled), m_unmangled(unmangled) {
             try
@@ -186,37 +186,69 @@ namespace {
     }
 }
 
+#define DUMP_IF_OK(symbol)  if(symbol) { std::cout << "found " << #symbol << " = '" << args::get(symbol) << "'\n"; }
+
+using ArgPath = args::ValueFlag<std::string, args::ValueReader>;
+using ArgSymbol = args::Positional<std::string>;
+
+
 int main(int argc, char **argv) {
-    args::ArgumentParser parser("This is a program for creating librery's index.");
-    args::Positional<std::string> source(parser, "source", "The directory with *.lst");
-    auto args_ok = false;
+    args::ArgumentParser    parser("args parser");
+    args::HelpFlag          help(parser, "help", "Display this help menu", { 'h', "help" }, {});
+    args::Group             group(parser, "This arguments are exclusive:", args::Group::Validators::Xor);
+    ArgPath                 lib_path(group, "BUILD", "Path to the library for which the index is built", { 'b', "build" });
+    ArgSymbol               symbol_arg(group, "SYMBOL", "Symbol to find");
+    auto                args_ok = false;
 
     try {
+        parser.helpParams.width = 120;
         parser.ParseCLI(argc, argv);
-        if (!source) { 
-            throw std::runtime_error("missing mandatory argument 'source'");
-        }
 
-        auto path = args::get(source);
-        if (!fs::exists(path)) {
-            throw std::runtime_error(std::format("'{}' does not exist", path));
-        }
-
-        args_ok = true;
         db::storage.sync_schema();
 
-        auto f_type = fs::status(path).type();
-        switch (f_type) {
-            case fs::file_type::regular:
-                process_file(path);
-                break;
-            default:
-                throw std::runtime_error(std::format("'{}' has wrong type {}", path, static_cast<int>(f_type)));
-        } 
+        if (lib_path) {
+            auto path = args::get(lib_path);
+
+            if (!fs::exists(path)) {
+                throw std::runtime_error(std::format("'{}' does not exist", path));
+            }
+
+            args_ok = true;
+
+            auto f_type = fs::status(path).type();
+            switch (f_type) {
+                case fs::file_type::regular:
+                    process_file(path);
+                    break;
+                default:
+                    throw std::runtime_error(std::format("'{}' has wrong type {}", path, static_cast<int>(f_type)));
+            }
+        }
+
+        if (symbol_arg) {
+            using sqlite_orm::like;
+            auto const & symbol = args::get(symbol_arg);
+            auto libs = db::storage.get_all<db::Symbol>(where(like(&db::Symbol::m_unmangled),symbol));
+            //std::cout << "'" << symbol << "' found in " << db::storage.dump(symbol) << std::endl;
+            //std::println("{}", libs);
+            for (auto const &lib : libs) {
+                std::cout << lib << '\n';
+            }
+        }
     }
     catch (args::Help) {
         std::cout << parser;
         return EXIT_SUCCESS;
+    }
+    catch (args::ValidationError) {
+        auto const & args = *static_cast<args::Group const *> (parser.Children()[1]);
+        if (args::Group::Validators::None(args)) {
+            std::cerr << "\n\n  There are missed or the SYMBOL or the BUILD argument.\n\n" << parser;
+        } else {
+            std::cerr << "\n\n  The SYMBOL and BUILD arguments are mutually exclusive.\n\n" << parser;
+        }
+
+        return EXIT_FAILURE;
     }
     catch (std::exception const & e) {
         //std::cerr << termcolor::red << typeid(e).name() << ": " << e.what() << termcolor::reset << std::endl;
