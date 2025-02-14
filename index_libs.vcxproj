@@ -51,7 +51,7 @@
       <SDLCheck>true</SDLCheck>
       <CommonPreprocessorDefinitions>BOOST_PROCESS_USE_STD_FS;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;_WIN32_WINNT=0x0601;_CRT_SECURE_NO_WARNINGS;_CONSOLE;%(PreprocessorDefinitions)</CommonPreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ARGS_ROOT);$(SQLITE_ORM_ROOT);$(TERMCOLOR_ROOT);$(SQLITE_ROOT);$(BOOST_ROOT)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ARGS_ROOT);$(SQLITE_ORM_ROOT)/include;$(TERMCOLOR_ROOT)/include;$(SQLITE_ROOT);$(BOOST_ROOT)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <EnableModules/>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -90,6 +90,48 @@
     <ClCompile Include="termcolor_module.ixx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-  </ImportGroup>
+  <ImportGroup Label="ExtensionTargets"/>
+
+  <PropertyGroup>
+    <BuildDependsOn>
+        BeforeBuild;
+        BuildCompile;
+        BuildLink;
+        AfterBuild
+    </BuildDependsOn>
+  </PropertyGroup>
+
+  <UsingTask
+    TaskName="CheckEnv"
+    TaskFactory="CodeTaskFactory"
+    AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" >
+    <ParameterGroup>
+      <VarValue ParameterType="System.String" />
+      <VarName ParameterType="System.String" Required="true" />
+      <Url ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Reference Include="System.Xml"/>
+      <Using Namespace="System"/>
+      <Using Namespace="System.IO"/>
+      <Code Type="Fragment" Language="cs">
+<![CDATA[
+  if (String.IsNullOrEmpty(VarValue)) {
+    Log.LogError(String.Format("Environment variable '{0}' is empty. It should be set to point to place where {1} is cloned.", VarName, Url));
+  } else if(!Directory.Exists(VarValue)) {
+    Log.LogError(String.Format("Environment variable '{0}' does not point to directory. It should be set to point where {1} is placed.", VarName, Url));
+  }
+]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="BeforeBuild">
+    <CheckEnv VarValue="$(ARGS_ROOT)" VarName="ARGS_ROOT" Url="https://github.com/Taywee/args.git"  />
+    <CheckEnv VarValue="$(SQLITE_ORM_ROOT)" VarName="SQLITE_ORM_ROOT" Url="https://github.com/fnc12/sqlite_orm.git"  />
+    <CheckEnv VarValue="$(TERMCOLOR_ROOT)" VarName="TERMCOLOR_ROOT" Url="https://github.com/ikalnytskyi/termcolor.git"  />
+    <CheckEnv VarValue="$(SQLITE_ROOT)" VarName="SQLITE_ROOT" Url="https://sqlite.org/src"  />
+    <CheckEnv VarValue="$(BOOST_ROOT)" VarName="BOOST_ROOT" Url="https://www.boost.org/ or https://sourceforge.net/projects/boost/files/boost-binaries/"  />
+    <CheckEnv VarValue="$(BOOST_LIBS_ROOT)" VarName="BOOST_LIBS_ROOT" Url="https://sourceforge.net/projects/boost/files/boost-binaries/"  />
+  </Target>
 </Project>
