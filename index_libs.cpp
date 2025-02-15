@@ -71,7 +71,7 @@ using ArgSymbol = args::Positional<std::string>;
 
 
 int main(int argc, char **argv) {
-    args::ArgumentParser    parser("args parser");
+    args::ArgumentParser    parser("Building an index of symbols exported from COFF libraries and searching for libraries by symbol.");
     args::HelpFlag          help(parser, "help", "Display this help menu", { 'h', "help" }, {});
     args::Group             group(parser, "This arguments are exclusive:", args::Group::Validators::Xor);
     ArgPath                 lib_path(group, "BUILD", "Path to the library for which the index is built", { 'b', "build" });
