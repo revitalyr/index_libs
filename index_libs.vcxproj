@@ -73,14 +73,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="args_module.ixx" />
-    <ClCompile Include="boost_module.ixx" />
+    <ClCompile Include="modules\args_module.ixx" />
+    <ClCompile Include="modules\boost_module.ixx" />
     <ClCompile Include="index_libs.cpp" />
-    <ClCompile Include="sqlite_orm_module.ixx">
+    <ClCompile Include="modules\sqlite_orm_module.ixx">
       <PreprocessorDefinitions>_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="storage.cpp" />
-    <ClCompile Include="termcolor_module.ixx" />
+    <ClCompile Include="modules\termcolor_module.ixx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
