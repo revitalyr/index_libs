@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
@@ -10,7 +9,6 @@
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -20,13 +18,11 @@
     <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-
   <PropertyGroup Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
   </PropertyGroup>
@@ -34,17 +30,13 @@
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
-
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <ImportGroup Label="ExtensionSettings"/>
-  <ImportGroup Label="Shared"/>
-
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-
   <PropertyGroup Label="UserMacros" />
-
   <ItemDefinitionGroup>
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -53,8 +45,9 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(ARGS_ROOT);$(SQLITE_ORM_ROOT)/include;$(TERMCOLOR_ROOT)/include;$(SQLITE_ROOT);$(BOOST_ROOT)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <EnableModules/>
+      <EnableModules />
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <DisableSpecificWarnings>4005</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -63,7 +56,6 @@
       <AdditionalLibraryDirectories>$(BOOST_LIBS_ROOT);$(SQLITE_ROOT)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
-
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;%(CommonPreprocessorDefinitions)</PreprocessorDefinitions>
@@ -85,13 +77,13 @@
     <ClCompile Include="boost_module.ixx" />
     <ClCompile Include="index_libs.cpp" />
     <ClCompile Include="sqlite_orm_module.ixx">
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="storage.cpp" />
     <ClCompile Include="termcolor_module.ixx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets"/>
-
+  <ImportGroup Label="ExtensionTargets" />
   <PropertyGroup>
     <BuildDependsOn>
         BeforeBuild;
@@ -100,38 +92,31 @@
         AfterBuild
     </BuildDependsOn>
   </PropertyGroup>
-
-  <UsingTask
-    TaskName="CheckEnv"
-    TaskFactory="CodeTaskFactory"
-    AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll" >
+  <UsingTask TaskName="CheckEnv" TaskFactory="CodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>
       <VarValue ParameterType="System.String" />
       <VarName ParameterType="System.String" Required="true" />
       <Url ParameterType="System.String" Required="true" />
     </ParameterGroup>
     <Task>
-      <Reference Include="System.Xml"/>
-      <Using Namespace="System"/>
-      <Using Namespace="System.IO"/>
-      <Code Type="Fragment" Language="cs">
-<![CDATA[
+      <Reference Include="System.Xml" />
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
   if (String.IsNullOrEmpty(VarValue)) {
     Log.LogError(String.Format("Environment variable '{0}' is empty. It should be set to point to place where {1} is cloned.", VarName, Url));
   } else if(!Directory.Exists(VarValue)) {
     Log.LogError(String.Format("Environment variable '{0}' does not point to directory. It should be set to point where {1} is placed.", VarName, Url));
   }
-]]>
-      </Code>
+]]></Code>
     </Task>
   </UsingTask>
-
   <Target Name="BeforeBuild">
-    <CheckEnv VarValue="$(ARGS_ROOT)" VarName="ARGS_ROOT" Url="https://github.com/Taywee/args.git"  />
-    <CheckEnv VarValue="$(SQLITE_ORM_ROOT)" VarName="SQLITE_ORM_ROOT" Url="https://github.com/fnc12/sqlite_orm.git"  />
-    <CheckEnv VarValue="$(TERMCOLOR_ROOT)" VarName="TERMCOLOR_ROOT" Url="https://github.com/ikalnytskyi/termcolor.git"  />
-    <CheckEnv VarValue="$(SQLITE_ROOT)" VarName="SQLITE_ROOT" Url="https://sqlite.org/src"  />
-    <CheckEnv VarValue="$(BOOST_ROOT)" VarName="BOOST_ROOT" Url="https://www.boost.org/ or https://sourceforge.net/projects/boost/files/boost-binaries/"  />
-    <CheckEnv VarValue="$(BOOST_LIBS_ROOT)" VarName="BOOST_LIBS_ROOT" Url="https://sourceforge.net/projects/boost/files/boost-binaries/"  />
+    <CheckEnv VarValue="$(ARGS_ROOT)" VarName="ARGS_ROOT" Url="https://github.com/Taywee/args.git" />
+    <CheckEnv VarValue="$(SQLITE_ORM_ROOT)" VarName="SQLITE_ORM_ROOT" Url="https://github.com/fnc12/sqlite_orm.git" />
+    <CheckEnv VarValue="$(TERMCOLOR_ROOT)" VarName="TERMCOLOR_ROOT" Url="https://github.com/ikalnytskyi/termcolor.git" />
+    <CheckEnv VarValue="$(SQLITE_ROOT)" VarName="SQLITE_ROOT" Url="https://sqlite.org/src" />
+    <CheckEnv VarValue="$(BOOST_ROOT)" VarName="BOOST_ROOT" Url="https://www.boost.org/ or https://sourceforge.net/projects/boost/files/boost-binaries/" />
+    <CheckEnv VarValue="$(BOOST_LIBS_ROOT)" VarName="BOOST_LIBS_ROOT" Url="https://sourceforge.net/projects/boost/files/boost-binaries/" />
   </Target>
 </Project>
