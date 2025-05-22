@@ -9,14 +9,15 @@ set(CMAKE_CXX_SCAN_FOR_MODULES ON)
 
 include(ExternalProject)
 
-set(ARGS_ROOT ${CMAKE_BINARY_DIR}/thirdparty/args)
+cmake_path(GET CMAKE_BINARY_DIR PARENT_PATH MASTER_CMAKE_DIR)
+set(ARGS_ROOT ${MASTER_CMAKE_DIR}/thirdparty/args)
 set(ARGS_INCLUDE_DIR ${ARGS_ROOT})
 
 ExternalProject_Add ( args
                       PREFIX ${ARGS_ROOT}
-                      STAMP_DIR ${ARGS_ROOT}
-                      SOURCE_DIR ${ARGS_ROOT}
-                      DOWNLOAD_DIR ${ARGS_ROOT}
+#                      STAMP_DIR ${ARGS_ROOT}
+#                      SOURCE_DIR ${ARGS_ROOT}
+#                      DOWNLOAD_DIR ${ARGS_ROOT}
                       URL "https://github.com/Taywee/args/archive/refs/tags/6.4.7.tar.gz"
                       DOWNLOAD_EXTRACT_TIMESTAMP true
                       CONFIGURE_COMMAND ""
