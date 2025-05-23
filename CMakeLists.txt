@@ -1,21 +1,23 @@
 cmake_minimum_required(VERSION 4.0)
+set(CMAKE_CXX_MODULE_STD ON)
 project(index_libs VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 
 set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED YES)
+set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_SCAN_FOR_MODULES ON)
 
 include(ExternalProject)
 
 function(add_thirdparty name url include)
     set(PACK_ROOT ${CMAKE_BINARY_DIR}/thirdparty/${name})
-    set(PACK_INCLUDE_DIR ${PACK_ROOT}/${include})
 
     ExternalProject_Add ( ${name}
                         PREFIX ${PACK_ROOT}
-                        STAMP_DIR ${PACK_ROOT}
+                        STAMP_DIR ${CMAKE_BINARY_DIR}/thirdparty
                         SOURCE_DIR ${PACK_ROOT}
                         DOWNLOAD_DIR ${PACK_ROOT}
                         URL ${url}
@@ -23,17 +25,27 @@ function(add_thirdparty name url include)
                         CONFIGURE_COMMAND ""
                         BUILD_COMMAND ""
                         )
+
+    include_directories(${PACK_ROOT}/${include})
 endfunction()
 
 add_thirdparty(args "https://github.com/Taywee/args/archive/refs/tags/6.4.7.tar.gz" "")
 add_thirdparty(sqlite_orm "https://github.com/fnc12/sqlite_orm/archive/refs/tags/v1.9.1.tar.gz" include)
 add_thirdparty(termcolor "https://github.com/ikalnytskyi/termcolor/archive/refs/tags/v2.1.0.tar.gz" include)
 
+find_package(SQLite3 REQUIRED)
+
 add_executable(index_libs index_libs.cpp storage.cpp)
 
-target_include_directories(index_libs PRIVATE ${ARGS_INCLUDE_DIR})
-target_include_directories(index_libs PRIVATE ${SQLITE_ORM_INCLUDE_DIR})
-target_include_directories(index_libs PRIVATE ${TERMCOLOR_INCLUDE_DIR})
+#target_include_directories(index_libs PRIVATE ${ARGS_INCLUDE_DIR})
+#target_include_directories(index_libs PRIVATE ${SQLITE_ORM_INCLUDE_DIR})
+#target_include_directories(index_libs PRIVATE ${TERMCOLOR_INCLUDE_DIR})
+
+get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+list(JOIN dirs : includes)
+message(STATUS "INCLUDE_DIRECTORIES='${dirs}'")
+message(STATUS "includes='${includes}'")
+set(ENV{CPLUS_INCLUDE_PATH} ${includes})
 
 target_sources(index_libs
     PUBLIC
