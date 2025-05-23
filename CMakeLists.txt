@@ -9,38 +9,31 @@ set(CMAKE_CXX_SCAN_FOR_MODULES ON)
 
 include(ExternalProject)
 
-set(ARGS_ROOT ${CMAKE_BINARY_DIR}/thirdparty/args)
-set(ARGS_INCLUDE_DIR ${ARGS_ROOT})
+function(add_thirdparty name url include)
+    set(PACK_ROOT ${CMAKE_BINARY_DIR}/thirdparty/${name})
+    set(PACK_INCLUDE_DIR ${PACK_ROOT}/${include})
 
-ExternalProject_Add ( args
-                      PREFIX ${ARGS_ROOT}
-                      STAMP_DIR ${ARGS_ROOT}
-                      SOURCE_DIR ${ARGS_ROOT}
-                      DOWNLOAD_DIR ${ARGS_ROOT}
-                      URL "https://github.com/Taywee/args/archive/refs/tags/6.4.7.tar.gz"
-                      DOWNLOAD_EXTRACT_TIMESTAMP true
-                      CONFIGURE_COMMAND ""
-                      BUILD_COMMAND ""
-                    )
+    ExternalProject_Add ( ${name}
+                        PREFIX ${PACK_ROOT}
+                        STAMP_DIR ${PACK_ROOT}
+                        SOURCE_DIR ${PACK_ROOT}
+                        DOWNLOAD_DIR ${PACK_ROOT}
+                        URL ${url}
+                        DOWNLOAD_EXTRACT_TIMESTAMP true
+                        CONFIGURE_COMMAND ""
+                        BUILD_COMMAND ""
+                        )
+endfunction()
 
-set(SQLITE_ORM_ROOT ${CMAKE_BINARY_DIR}/thirdparty/sqlite_orm)
-set(SQLITE_ORM_INCLUDE_DIR ${SQLITE_ORM_ROOT}/include)
-
-ExternalProject_Add ( sqlite_orm
-                      PREFIX ${SQLITE_ORM_ROOT}
-                      STAMP_DIR ${SQLITE_ORM_ROOT}
-                      SOURCE_DIR ${SQLITE_ORM_ROOT}
-                      DOWNLOAD_DIR ${SQLITE_ORM_ROOT}
-                      URL "https://github.com/fnc12/sqlite_orm/archive/refs/tags/v1.9.1.tar.gz"
-                      DOWNLOAD_EXTRACT_TIMESTAMP true
-                      CONFIGURE_COMMAND ""
-                      BUILD_COMMAND ""
-                    )                    
+add_thirdparty(args "https://github.com/Taywee/args/archive/refs/tags/6.4.7.tar.gz" "")
+add_thirdparty(sqlite_orm "https://github.com/fnc12/sqlite_orm/archive/refs/tags/v1.9.1.tar.gz" include)
+add_thirdparty(termcolor "https://github.com/ikalnytskyi/termcolor/archive/refs/tags/v2.1.0.tar.gz" include)
 
 add_executable(index_libs index_libs.cpp storage.cpp)
 
 target_include_directories(index_libs PRIVATE ${ARGS_INCLUDE_DIR})
 target_include_directories(index_libs PRIVATE ${SQLITE_ORM_INCLUDE_DIR})
+target_include_directories(index_libs PRIVATE ${TERMCOLOR_INCLUDE_DIR})
 
 target_sources(index_libs
     PUBLIC
