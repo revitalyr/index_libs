@@ -1,6 +1,8 @@
-export module termcolor_module;
+module;
 
-import "termcolor/termcolor.hpp";
+#include "termcolor/termcolor.hpp"
+
+export module termcolor_module;
 
 export namespace termcolor {
     using termcolor::colorize;

@@ -1,8 +1,8 @@
 module;
 
-export module sqlite_orm_module;
+#include "sqlite_orm/sqlite_orm.h"
 
-import "sqlite_orm/sqlite_orm.h";
+export module sqlite_orm_module;
 
 export namespace sqlite_orm {
     using sqlite_orm::length;
