@@ -27,7 +27,7 @@ export namespace sqlite_orm {
     using sqlite_orm::internal::column_t;
     using sqlite_orm::internal::storage_t;
 
-    export namespace internal {
+    namespace internal {
         using sqlite_orm::internal::expression_t;
     }
 }
