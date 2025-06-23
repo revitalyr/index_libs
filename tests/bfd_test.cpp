@@ -5,33 +5,62 @@
 
 struct BfdWrapper
 {
-    bfd     *m_file{ nullptr };
+    bfd     *m_bfd{ nullptr };
+
+    BfdWrapper() = default;
 
     explicit BfdWrapper(std::string_view filename) {
-        if( !(m_file = bfd_openr(filename.data(), nullptr)) ) {
-            throw std::runtime_error(((std::string("Could not open '") 
-                                        += filename) 
-                                        += "': ") 
-                                        += bfd_errmsg(bfd_get_error()));
+        static bool init = [](){
+            bfd_init();
+            return true;
+        } ();
+
+        if( !(m_bfd = bfd_openr(filename.data(), nullptr)) ) {
+            throw std::runtime_error((std::stringstream() << "Could not open '" << filename << "': " << bfd_errmsg(bfd_get_error())).str());
         }
     }
+
+    explicit BfdWrapper(bfd *bfd) : m_bfd{ bfd } {
+        if(!(bfd_check_format (m_bfd, bfd_object) || bfd_check_format (m_bfd, bfd_archive))) {
+            throw std::runtime_error("Bad source bfd");
+        }
+    }
+
     ~BfdWrapper() noexcept {
         close();
     }
 
-    void close() noexcept {
-        if(*this) {
-            bfd_close(m_file);
-            m_file = nullptr;
-        }
+    BfdWrapper & operator=(BfdWrapper &&rlh) noexcept {
+        close();
+        m_bfd = rlh.m_bfd;
+        rlh.m_bfd = nullptr;
+        return *this;
     }
 
     operator bool() const noexcept {
-        return m_file != nullptr;
+        return m_bfd != nullptr;
     }
 
-    operator bfd*() const noexcept {
-        return m_file;
+    BfdWrapper  open_next_archive(BfdWrapper const &previous) noexcept {
+        if (auto next_arc{bfd_openr_next_archived_file(m_bfd, previous.m_bfd)}; next_arc != nullptr) {
+            return BfdWrapper{ next_arc };
+        }
+        return BfdWrapper{ };
+    }
+
+    void close() noexcept {
+        if(*this) {
+            bfd_close(m_bfd);
+            m_bfd = nullptr;
+        }
+    }
+
+    bool is_format(bfd_format format) const noexcept {
+        return bfd_check_format (m_bfd, format);
+    }
+
+    const char *filename() const noexcept {
+        return m_bfd ? m_bfd->filename : "";
     }
 };
  
@@ -41,47 +70,25 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  std::cout << "Input: " << argv[1] << '\n';
+  try{
+    std::cout << "Input: " << argv[1] << '\n';
+    auto file{ BfdWrapper(argv[1]) };
 
-  bfd_init();
+    if (file.is_format(bfd_archive)) {
+        BfdWrapper  arfile;
 
-  if (auto file = BfdWrapper(argv[1])) {
-    if (bfd_check_format(file, bfd_archive)) {
-      std::cout << argv[1] << " contains following files:\n";
-      bfd *last_arfile = nullptr;
+        std::cout << file.filename() << " contains following files:\n";
 
-      while (bfd *arfile = bfd_openr_next_archived_file(file, arfile)) {
-        if (arfile) {
-          std::cout << bfd_get_filename(arfile) << '\n';
-        } else {
-          if (bfd_get_error() != bfd_error_no_more_archived_files) {
-            bfd_perror("bfd_openr_next_archived_file");
-            return 1;
-          }
-          break;
+        while ( (arfile = file.open_next_archive(arfile)) != false) {
+            std::cout << arfile.filename() << '\n';
         }
-
-        if (last_arfile) {
-          bfd_close(last_arfile);
-          last_arfile = nullptr;
-          if (last_arfile == arfile) {
-            break;
-          }
-        }
-        last_arfile = arfile;
-      }
-
-      if (last_arfile) {
-        bfd_close(last_arfile);
-      }
     } else {
-      std::cout << argv[1] << " is not archive!\n";
-      return 1;
+        std::cerr << file.filename() << " is not archive!\n";
+        return 1;
     }
-
-    bfd_close(file);
-  } else {
-    bfd_perror("Open file failed");
+  } 
+  catch(std::exception const & ex) {
+    std::cerr << typeid(ex).name() << ": " << ex.what() << '\n';
     return 1;
   }
 
