@@ -3,6 +3,12 @@
 #include <sstream>
 #include <string_view>
 
+#ifndef DMGL_PARAMS
+#   define DMGL_NO_OPTS     0              /* For readability... */
+#   define DMGL_PARAMS      (1 << 0)       /* Include function args */
+#   define DMGL_ANSI        (1 << 1)       /* Include const, volatile, etc */
+#endif
+
 struct BfdWrapper
 {
     bfd     *m_bfd{ nullptr };
@@ -59,8 +65,12 @@ struct BfdWrapper
         return bfd_check_format (m_bfd, format);
     }
 
-    const char *filename() const noexcept {
+    char const *filename() const noexcept {
         return m_bfd ? m_bfd->filename : "";
+    }
+
+    bfd const *get() const noexcept {
+        return m_bfd;
     }
 };
  
@@ -75,12 +85,35 @@ int main(int argc, char **argv) {
     auto file{ BfdWrapper(argv[1]) };
 
     if (file.is_format(bfd_archive)) {
+        auto verbose{ true };
+        int demangle_flags = verbose ? (DMGL_PARAMS | DMGL_ANSI) : DMGL_NO_OPTS;
         BfdWrapper  arfile;
 
         std::cout << file.filename() << " contains following files:\n";
 
         while ( (arfile = file.open_next_archive(arfile)) != false) {
             std::cout << arfile.filename() << '\n';
+
+            long storage_needed;
+            bfd_symbol **symbol_table;
+            long number_of_symbols;
+            long i;
+            auto abfd{ const_cast<bfd*>(arfile.get()) };
+
+            storage_needed = bfd_get_symtab_upper_bound(abfd);
+
+            if (storage_needed > 0) {
+                symbol_table = (bfd_symbol **) malloc (storage_needed);
+
+                number_of_symbols =
+                    bfd_canonicalize_symtab (abfd, symbol_table);
+
+                for (auto i = 0; i < number_of_symbols; i++) {
+                    auto name{ symbol_table[i]->name };
+                    auto demangled = bfd_demangle(abfd, name, demangle_flags);
+                    std::cout << "  " << (demangled ? demangled : "") << " (" << name << ")\n";
+                }
+            }
         }
     } else {
         std::cerr << file.filename() << " is not archive!\n";
