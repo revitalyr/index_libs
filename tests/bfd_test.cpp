@@ -1,6 +1,40 @@
 #include <bfd.h>
 #include <iostream>
+#include <sstream>
+#include <string_view>
 
+struct BfdWrapper
+{
+    bfd     *m_file{ nullptr };
+
+    explicit BfdWrapper(std::string_view filename) {
+        if( !(m_file = bfd_openr(filename.data(), nullptr)) ) {
+            throw std::runtime_error(((std::string("Could not open '") 
+                                        += filename) 
+                                        += "': ") 
+                                        += bfd_errmsg(bfd_get_error()));
+        }
+    }
+    ~BfdWrapper() noexcept {
+        close();
+    }
+
+    void close() noexcept {
+        if(*this) {
+            bfd_close(m_file);
+            m_file = nullptr;
+        }
+    }
+
+    operator bool() const noexcept {
+        return m_file != nullptr;
+    }
+
+    operator bfd*() const noexcept {
+        return m_file;
+    }
+};
+ 
 int main(int argc, char **argv) {
   if (argc == 1) {
     std::cerr << "Lack input file!\n";
@@ -11,7 +45,7 @@ int main(int argc, char **argv) {
 
   bfd_init();
 
-  if (auto file = bfd_openr(argv[1], nullptr)) {
+  if (auto file = BfdWrapper(argv[1])) {
     if (bfd_check_format(file, bfd_archive)) {
       std::cout << argv[1] << " contains following files:\n";
       bfd *last_arfile = nullptr;
