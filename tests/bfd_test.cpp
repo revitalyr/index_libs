@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <string_view>
+#include <vector>
 
 #ifndef DMGL_PARAMS
 #define DMGL_NO_OPTS 0       /* For readability... */
@@ -73,6 +74,8 @@ struct BfdWrapper {
     bfd const *get() const noexcept { return m_bfd; }
 };
 
+using SymbolTable = std::vector<bfd_symbol *>;
+
 int main(int argc, char **argv) {
     if (argc == 1) {
         std::cerr << "Lack input file!\n";
@@ -94,32 +97,32 @@ int main(int argc, char **argv) {
             while ((arfile = file.open_next_archive(arfile)) != false) {
                 std::cout << arfile.filename() << '\n';
 
-                long storage_needed;
-                bfd_symbol **symbol_table;
-                long number_of_symbols;
-                long i;
                 auto abfd{const_cast<bfd *>(arfile.get())};
 
-                storage_needed = bfd_get_symtab_upper_bound(abfd);
+                if (auto storage_needed = bfd_get_symtab_upper_bound(abfd);
+                    storage_needed > 0) {
+                    SymbolTable symbol_table(
+                        storage_needed / sizeof(SymbolTable::value_type)
+                    );
 
-                if (storage_needed > 0) {
-                    symbol_table = (bfd_symbol **)malloc(storage_needed);
+                    if (auto number_of_symbols =
+                            bfd_canonicalize_symtab(abfd, symbol_table.data());
+                        number_of_symbols == symbol_table.size() - 1) {
+                        symbol_table.resize(number_of_symbols);
 
-                    number_of_symbols =
-                        bfd_canonicalize_symtab(abfd, symbol_table);
-
-                    for (auto i = 0; i < number_of_symbols; i++) {
-                        std::string_view name{symbol_table[i]->name};
-                        if (name.starts_with('.')) {
-                            if (auto pos = name.find_last_of('.');
-                                pos != name.npos) {
-                                name.remove_prefix(pos + 1);
+                        for (auto symbol : symbol_table) {
+                            std::string_view name{symbol->name};
+                            if (name.starts_with('.')) {
+                                if (auto pos = name.find_last_of('.');
+                                    pos != name.npos) {
+                                    name.remove_prefix(pos + 1);
+                                }
                             }
+                            auto demangled =
+                                bfd_demangle(abfd, name.data(), demangle_flags);
+                            std::cout << "  " << (demangled ? demangled : "")
+                                      << " (" << name << ")\n";
                         }
-                        auto demangled =
-                            bfd_demangle(abfd, name.data(), demangle_flags);
-                        std::cout << "  " << (demangled ? demangled : "")
-                                  << " (" << name << ")\n";
                     }
                 }
             }
