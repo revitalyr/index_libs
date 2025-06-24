@@ -1,5 +1,6 @@
 #include <bfd.h>
 
+#include <functional>
 #include <iostream>
 #include <sstream>
 #include <string_view>
@@ -63,6 +64,39 @@ struct BfdWrapper {
         }
     }
 
+    void scan_symbols(std::function<void(bfd_symbol const *)> handler) const {
+        using SymbolTable = std::vector<bfd_symbol *>;
+
+        if (auto storage_needed = bfd_get_symtab_upper_bound(m_bfd);
+            storage_needed > 0) {
+            SymbolTable symbol_table(
+                storage_needed / sizeof(SymbolTable::value_type)
+            );
+
+            if (auto number_of_symbols =
+                    bfd_canonicalize_symtab(m_bfd, symbol_table.data());
+                number_of_symbols > 0) {
+                symbol_table.resize(number_of_symbols);
+
+                for (auto symbol : symbol_table) {
+                    handler(symbol);
+                }
+            }
+        }
+    }
+
+    std::string_view demangle(std::string_view name) const noexcept {
+        if (name.starts_with('.')) {
+            if (auto pos = name.find_last_of('.'); pos != name.npos) {
+                name.remove_prefix(pos + 1);
+            }
+        }
+        auto verbose{true};
+        int demangle_flags = verbose ? (DMGL_PARAMS | DMGL_ANSI) : DMGL_NO_OPTS;
+        auto demangled = bfd_demangle(m_bfd, name.data(), demangle_flags);
+        return (demangled ? demangled : "");
+    }
+
     bool is_format(bfd_format format) const noexcept {
         return bfd_check_format(m_bfd, format);
     }
@@ -73,8 +107,6 @@ struct BfdWrapper {
 
     bfd const *get() const noexcept { return m_bfd; }
 };
-
-using SymbolTable = std::vector<bfd_symbol *>;
 
 int main(int argc, char **argv) {
     if (argc == 1) {
@@ -87,9 +119,6 @@ int main(int argc, char **argv) {
         auto file{BfdWrapper(argv[1])};
 
         if (file.is_format(bfd_archive)) {
-            auto verbose{true};
-            int demangle_flags =
-                verbose ? (DMGL_PARAMS | DMGL_ANSI) : DMGL_NO_OPTS;
             BfdWrapper arfile;
 
             std::cout << file.filename() << " contains following files:\n";
@@ -97,34 +126,44 @@ int main(int argc, char **argv) {
             while ((arfile = file.open_next_archive(arfile)) != false) {
                 std::cout << arfile.filename() << '\n';
 
-                auto abfd{const_cast<bfd *>(arfile.get())};
+                arfile.scan_symbols([&arfile](bfd_symbol const *symbol) {
+                    std::string_view name{symbol->name};
+                    auto demangled = arfile.demangle(name);
+                    std::cout << "  " << demangled << " (" << name << ")\n";
+                });
 
-                if (auto storage_needed = bfd_get_symtab_upper_bound(abfd);
-                    storage_needed > 0) {
-                    SymbolTable symbol_table(
-                        storage_needed / sizeof(SymbolTable::value_type)
-                    );
+                // auto abfd{const_cast<bfd *>(arfile.get())};
 
-                    if (auto number_of_symbols =
-                            bfd_canonicalize_symtab(abfd, symbol_table.data());
-                        number_of_symbols > 0) {
+                // if (auto storage_needed =
+                // bfd_get_symtab_upper_bound(abfd);
+                //     storage_needed > 0) {
+                //     SymbolTable symbol_table(
+                //         storage_needed / sizeof(SymbolTable::value_type)
+                //     );
 
-                        symbol_table.resize(number_of_symbols);
-                        for (auto symbol : symbol_table) {
-                            std::string_view name{symbol->name};
-                            if (name.starts_with('.')) {
-                                if (auto pos = name.find_last_of('.');
-                                    pos != name.npos) {
-                                    name.remove_prefix(pos + 1);
-                                }
-                            }
-                            auto demangled =
-                                bfd_demangle(abfd, name.data(), demangle_flags);
-                            std::cout << "  " << (demangled ? demangled : "")
-                                      << " (" << name << ")\n";
-                        }
-                    }
-                }
+                //     if (auto number_of_symbols =
+                //             bfd_canonicalize_symtab(abfd,
+                //             symbol_table.data());
+                //         number_of_symbols > 0) {
+
+                //         symbol_table.resize(number_of_symbols);
+                //         for (auto symbol : symbol_table) {
+                //             std::string_view name{symbol->name};
+                //             if (name.starts_with('.')) {
+                //                 if (auto pos = name.find_last_of('.');
+                //                     pos != name.npos) {
+                //                     name.remove_prefix(pos + 1);
+                //                 }
+                //             }
+                //             auto demangled =
+                //                 bfd_demangle(abfd, name.data(),
+                //                 demangle_flags);
+                //             std::cout << "  " << (demangled ? demangled :
+                //             "")
+                //                       << " (" << name << ")\n";
+                //         }
+                //     }
+                //}
             }
         } else {
             std::cerr << file.filename() << " is not archive!\n";
