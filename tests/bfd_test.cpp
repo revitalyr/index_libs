@@ -131,39 +131,6 @@ int main(int argc, char **argv) {
                     auto demangled = arfile.demangle(name);
                     std::cout << "  " << demangled << " (" << name << ")\n";
                 });
-
-                // auto abfd{const_cast<bfd *>(arfile.get())};
-
-                // if (auto storage_needed =
-                // bfd_get_symtab_upper_bound(abfd);
-                //     storage_needed > 0) {
-                //     SymbolTable symbol_table(
-                //         storage_needed / sizeof(SymbolTable::value_type)
-                //     );
-
-                //     if (auto number_of_symbols =
-                //             bfd_canonicalize_symtab(abfd,
-                //             symbol_table.data());
-                //         number_of_symbols > 0) {
-
-                //         symbol_table.resize(number_of_symbols);
-                //         for (auto symbol : symbol_table) {
-                //             std::string_view name{symbol->name};
-                //             if (name.starts_with('.')) {
-                //                 if (auto pos = name.find_last_of('.');
-                //                     pos != name.npos) {
-                //                     name.remove_prefix(pos + 1);
-                //                 }
-                //             }
-                //             auto demangled =
-                //                 bfd_demangle(abfd, name.data(),
-                //                 demangle_flags);
-                //             std::cout << "  " << (demangled ? demangled :
-                //             "")
-                //                       << " (" << name << ")\n";
-                //         }
-                //     }
-                //}
             }
         } else {
             std::cerr << file.filename() << " is not archive!\n";
