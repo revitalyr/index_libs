@@ -107,9 +107,9 @@ int main(int argc, char **argv) {
 
                     if (auto number_of_symbols =
                             bfd_canonicalize_symtab(abfd, symbol_table.data());
-                        number_of_symbols == symbol_table.size() - 1) {
-                        symbol_table.resize(number_of_symbols);
+                        number_of_symbols > 0) {
 
+                        symbol_table.resize(number_of_symbols);
                         for (auto symbol : symbol_table) {
                             std::string_view name{symbol->name};
                             if (name.starts_with('.')) {
