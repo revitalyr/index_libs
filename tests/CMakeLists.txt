@@ -14,9 +14,21 @@ project(bfd_test LANGUAGES CXX)
 
 cmake_policy(SET CMP0179 NEW)
 
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+enable_testing()
+
 add_library(bfd_test_lib STATIC)
 target_sources(bfd_test_lib
-  PUBLIC FILE_SET CXX_MODULES FILES   
+  PUBLIC FILE_SET CXX_MODULES FILES
+    types.cxx 
     bfd_test.cxx)
 
 # Tell CMake we're using C++23 but only C++20 is needed to consume it.
@@ -24,8 +36,17 @@ target_compile_features(bfd_test_lib
   PRIVATE   cxx_std_23
   INTERFACE cxx_std_20)
 
-add_executable(main)
-target_sources(main
+add_executable(bfd_test)
+
+target_sources(bfd_test
   PRIVATE
     bfd_test.cpp)
-target_link_libraries(main PRIVATE bfd_test_lib bfd)
+
+target_link_libraries(
+  bfd_test PRIVATE 
+  bfd_test_lib 
+  bfd
+  GTest::gtest_main)
+
+include(GoogleTest)
+gtest_discover_tests(bfd_test)
