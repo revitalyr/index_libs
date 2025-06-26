@@ -5,12 +5,7 @@ module;
 export module bfd_test_module;
 
 import std;
-
-// #include <functional>
-// #include <iostream>
-// #include <sstream>
-// #include <string_view>
-// #include <vector>
+import types;
 
 #ifndef DMGL_PARAMS
 #define DMGL_NO_OPTS 0       /* For readability... */
@@ -18,24 +13,33 @@ import std;
 #define DMGL_ANSI (1 << 1)   /* Include const, volatile, etc */
 #endif
 
-export bfd_format;
+// export bfd_format;
+
+export namespace Exception {
+
+    struct CouldNotOpen : public std::runtime_error {
+        explicit CouldNotOpen(StrView filename)
+            : std::runtime_error((std::stringstream()
+                                  << "Could not open '" << filename
+                                  << "': " << bfd_errmsg(bfd_get_error()))
+                                     .str()) {}
+    };
+
+}  // namespace Exception
 
 export struct BfdWrapper {
     bfd *m_bfd{nullptr};
 
     BfdWrapper() = default;
 
-    explicit BfdWrapper(std::string_view filename) {
+    explicit BfdWrapper(StrView filename) {
         static bool init = []() {
             bfd_init();
             return true;
         }();
 
         if (!(m_bfd = bfd_openr(filename.data(), nullptr))) {
-            throw std::runtime_error((std::stringstream()
-                                      << "Could not open '" << filename
-                                      << "': " << bfd_errmsg(bfd_get_error()))
-                                         .str());
+            throw Exception::CouldNotOpen(filename);
         }
     }
 
@@ -93,7 +97,7 @@ export struct BfdWrapper {
         }
     }
 
-    std::string_view demangle(std::string_view name) const noexcept {
+    StrView demangle(StrView name) const noexcept {
         if (name.starts_with('.')) {
             if (auto pos = name.find_last_of('.'); pos != name.npos) {
                 name.remove_prefix(pos + 1);
