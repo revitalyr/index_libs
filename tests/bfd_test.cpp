@@ -1,8 +1,31 @@
 #include <bfd.h>
+#include <gtest/gtest.h>
 
 import std;
+import types;
 import bfd_test_module;
 
+namespace TestData {
+    std::filesystem::path THIS_FILE{__FILE__};
+    String const LIB{
+        (THIS_FILE.parent_path() / "data/libLLVMDWARFLinker.a").string()
+    };
+};  // namespace TestData
+
+struct BfdWrapperTestsF : public testing::Test {
+    BfdWrapper m_file;
+    BfdWrapperTestsF() : m_file{TestData::LIB} {}
+};
+
+TEST_F(BfdWrapperTestsF, NotExistenFile) {
+    EXPECT_THROW(BfdWrapper("not a file"), Exception::CouldNotOpen);
+}
+
+TEST_F(BfdWrapperTestsF, IsArchive) {
+    ASSERT_TRUE(m_file.is_format(bfd_archive));
+}
+
+/*
 int main(int argc, char **argv) {
     if (argc == 1) {
         std::cerr << "Lack input file!\n";
@@ -38,3 +61,4 @@ int main(int argc, char **argv) {
 
     return 0;
 }
+*/
