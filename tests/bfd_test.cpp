@@ -5,6 +5,65 @@ import std;
 import types;
 import bfd_test_module;
 
+auto out = &std::cerr;
+
+struct BfdRange {
+    BfdWrapper &m_bfd;
+
+    struct Iterator {
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = BfdWrapper &;
+        using difference_type = std::ptrdiff_t;
+        struct Sentinel {};
+
+        BfdWrapper &m_bfd;
+        BfdWrapper m_archive;
+
+        Iterator(BfdWrapper &bfd) : m_bfd{bfd} {
+            //*out << "Iterator: " << m_bfd.filename() << '\n';
+            operator++();
+        }
+
+        bool operator==(Sentinel) { return !m_archive; }
+        Iterator &operator++() {
+            m_archive = m_bfd.open_next_archive(m_archive);
+            // *out << "operator++ ";
+            // if (m_archive) {
+            //     *out << m_archive.filename();
+            // } else {
+            //     bfd_perror("failed");
+            // }
+            // *out << '\n';
+            return *this;
+        }
+        value_type operator*() { return m_archive; }
+    };
+
+    BfdRange(BfdWrapper &bfd) : m_bfd{bfd} {
+        //        *out << "BfdRange: " << m_bfd.filename() << "\n";
+    }
+
+    Iterator begin() { return Iterator{m_bfd}; }
+    Iterator::Sentinel end() const { return Iterator::Sentinel{}; }
+};
+
+auto t() {
+    auto lib{
+        BfdWrapper{"/mnt/d/work/codebrowser_fork/index_libs/tests/data/"
+                   "libLLVMDWARFLinker.a"}
+    };
+
+    *out << lib.filename() << ":\n";
+    for (auto const &bfd : BfdRange(lib)) {
+        *out << "  " << bfd.filename() << '\n';
+        bfd.scan_symbols([&bfd](bfd_symbol const *symbol) {
+            std::string_view name{symbol->name};
+            auto demangled = bfd.demangle(name);
+            std::cout << "    " << demangled << " (" << name << ")\n";
+        });
+    }
+}
+
 namespace TestData {
     std::filesystem::path THIS_FILE{__FILE__};
     String const LIB{
@@ -14,7 +73,7 @@ namespace TestData {
 
 struct BfdWrapperTestsF : public testing::Test {
     BfdWrapper m_file;
-    BfdWrapperTestsF() : m_file{TestData::LIB} {}
+    BfdWrapperTestsF() : m_file{TestData::LIB} { t(); }
 };
 
 TEST_F(BfdWrapperTestsF, NotExistenFile) {
