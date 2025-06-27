@@ -2,6 +2,8 @@ module;
 
 #include <bfd.h>
 
+#include <cassert>
+
 export module bfd_test_module;
 
 import std;
@@ -62,10 +64,14 @@ export struct BfdWrapper {
     operator bool() const noexcept { return m_bfd != nullptr; }
 
     BfdWrapper open_next_archive(BfdWrapper const &previous) noexcept {
+        // std::cerr << "BfdWrapper::open_next_archive: m_bfd " << m_bfd
+        //           << ", previous.m_bfd " << previous.m_bfd << '\n';
+        assert(is_format(bfd_archive));
         if (auto next_arc{bfd_openr_next_archived_file(m_bfd, previous.m_bfd)};
             next_arc != nullptr) {
             return BfdWrapper{next_arc};
         }
+        bfd_perror("open_next_archive");
         return BfdWrapper{};
     }
 
