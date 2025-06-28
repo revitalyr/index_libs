@@ -29,7 +29,7 @@ add_library(bfd_test_lib STATIC)
 target_sources(bfd_test_lib
   PUBLIC FILE_SET CXX_MODULES FILES
     types.cxx 
-    bfd_test.cxx)
+    bfd_wrapper.cxx)
 
 # Tell CMake we're using C++23 but only C++20 is needed to consume it.
 target_compile_features(bfd_test_lib
