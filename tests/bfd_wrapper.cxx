@@ -4,7 +4,7 @@ module;
 
 #include <cassert>
 
-export module bfd_test_module;
+export module bfd_wrapper_module;
 
 import std;
 import types;
@@ -25,6 +25,13 @@ export namespace Exception {
                                   << "Could not open '" << filename
                                   << "': " << bfd_errmsg(bfd_get_error()))
                                      .str()) {}
+    };
+
+    struct BfdError : public std::runtime_error {
+        explicit BfdError(StrView reason)
+            : std::runtime_error(
+                  String(reason) + ": " + bfd_errmsg(bfd_get_error())
+              ) {}
     };
 
 }  // namespace Exception
@@ -48,7 +55,7 @@ export struct BfdWrapper {
     explicit BfdWrapper(bfd *bfd) : m_bfd{bfd} {
         if (!(bfd_check_format(m_bfd, bfd_object) ||
               bfd_check_format(m_bfd, bfd_archive))) {
-            throw std::runtime_error("Bad source bfd");
+            throw Exception::BfdError("BfdWrapper: Bad source bfd");
         }
     }
 
@@ -63,15 +70,17 @@ export struct BfdWrapper {
 
     operator bool() const noexcept { return m_bfd != nullptr; }
 
-    BfdWrapper open_next_archive(BfdWrapper const &previous) noexcept {
-        // std::cerr << "BfdWrapper::open_next_archive: m_bfd " << m_bfd
-        //           << ", previous.m_bfd " << previous.m_bfd << '\n';
+    BfdWrapper open_next_archive(BfdWrapper const &previous) {
         assert(is_format(bfd_archive));
         if (auto next_arc{bfd_openr_next_archived_file(m_bfd, previous.m_bfd)};
             next_arc != nullptr) {
             return BfdWrapper{next_arc};
         }
-        bfd_perror("open_next_archive");
+
+        if (bfd_get_error() != bfd_error_no_more_archived_files) {
+            throw Exception::BfdError("open_next_archive");
+        }
+
         return BfdWrapper{};
     }
 
@@ -82,12 +91,14 @@ export struct BfdWrapper {
         }
     }
 
-    void scan_symbols(std::function<void(bfd_symbol const *)> handler) const {
-        using SymbolTable = std::vector<bfd_symbol *>;
+    using SymbolTable = std::vector<bfd_symbol *>;
+
+    SymbolTable symbols() const {
+        SymbolTable symbol_table;
 
         if (auto storage_needed = bfd_get_symtab_upper_bound(m_bfd);
             storage_needed > 0) {
-            SymbolTable symbol_table(
+            symbol_table.resize(
                 storage_needed / sizeof(SymbolTable::value_type)
             );
 
@@ -95,12 +106,12 @@ export struct BfdWrapper {
                     bfd_canonicalize_symtab(m_bfd, symbol_table.data());
                 number_of_symbols > 0) {
                 symbol_table.resize(number_of_symbols);
-
-                for (auto symbol : symbol_table) {
-                    handler(symbol);
-                }
+            } else {
+                throw Exception::BfdError("symbols");
             }
         }
+
+        return symbol_table;
     }
 
     StrView demangle(StrView name) const noexcept {
@@ -124,4 +135,40 @@ export struct BfdWrapper {
     }
 
     bfd const *get() const noexcept { return m_bfd; }
+};
+
+export struct BfdRange {
+    BfdWrapper &m_bfd;
+
+    struct Iterator {
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = BfdWrapper &;
+        using difference_type = std::ptrdiff_t;
+        struct Sentinel {};
+
+        BfdWrapper &m_bfd;
+        BfdWrapper m_archive;
+
+        Iterator(BfdWrapper &bfd) : m_bfd{bfd} {
+            //*out << "Iterator: " << m_bfd.filename() << '\n';
+            operator++();
+        }
+
+        bool operator==(Sentinel) { return !m_archive; }
+        Iterator &operator++() {
+            if ((m_archive = m_bfd.open_next_archive(m_archive)) == false &&
+                bfd_get_error() != bfd_error_no_more_archived_files) {
+                bfd_perror("failed");
+            }
+            return *this;
+        }
+        value_type operator*() { return m_archive; }
+    };
+
+    BfdRange(BfdWrapper &bfd) : m_bfd{bfd} {
+        //        *out << "BfdRange: " << m_bfd.filename() << "\n";
+    }
+
+    Iterator begin() { return Iterator{m_bfd}; }
+    Iterator::Sentinel end() const { return Iterator::Sentinel{}; }
 };
