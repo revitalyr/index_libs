@@ -21,16 +21,18 @@ export namespace Exception {
 
     struct CouldNotOpen : public std::runtime_error {
         explicit CouldNotOpen(StrView filename)
-            : std::runtime_error((std::stringstream()
-                                  << "Could not open '" << filename
-                                  << "': " << bfd_errmsg(bfd_get_error()))
-                                     .str()) {}
+            : std::runtime_error(
+                  std::format(
+                      "Could not open '{}': {}", filename,
+                      bfd_errmsg(bfd_get_error())
+                  )
+              ) {}
     };
 
     struct BfdError : public std::runtime_error {
         explicit BfdError(StrView reason)
             : std::runtime_error(
-                  String(reason) + ": " + bfd_errmsg(bfd_get_error())
+                  std::format("{}: {}", reason, bfd_errmsg(bfd_get_error()))
               ) {}
     };
 
