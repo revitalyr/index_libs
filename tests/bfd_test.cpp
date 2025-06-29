@@ -26,7 +26,7 @@ Strings exec(StrView cmd) {
     auto sstream{std::stringstream{output}};
 
     for (std::string line; std::getline(sstream, line, '\n');) {
-        std::cout << line << '\n';
+        result.push_back(line);
     }
 
     return result;
@@ -37,12 +37,6 @@ auto t() {
         BfdWrapper{"/mnt/d/work/codebrowser_fork/index_libs/tests/data/"
                    "libLLVMDWARFLinker.a"}
     };
-
-    String cmd{"nm -C "};
-    auto checked{exec(cmd + lib.filename())};
-    std::ranges::for_each(checked, [](auto const &line) {
-        std::cout << line << '\n';
-    });
 
     *out << lib.filename() << ":\n";
     for (auto const &bfd : BfdRange(lib)) {
@@ -64,7 +58,7 @@ namespace TestData {
 
 struct BfdWrapperTestsF : public testing::Test {
     BfdWrapper m_file;
-    BfdWrapperTestsF() : m_file{TestData::LIB} { t(); }
+    BfdWrapperTestsF() : m_file{TestData::LIB} {}
 };
 
 TEST_F(BfdWrapperTestsF, NotExistenFile) {
@@ -73,6 +67,21 @@ TEST_F(BfdWrapperTestsF, NotExistenFile) {
 
 TEST_F(BfdWrapperTestsF, IsArchive) {
     ASSERT_TRUE(m_file.is_format(bfd_archive));
+}
+
+TEST_F(BfdWrapperTestsF, CompareWithNM) {
+    String cmd{"nm -C "};
+    auto checked{exec(cmd + m_file.filename())};
+    std::ranges::for_each(checked, [](auto const &line) {
+        if (line.size() > 0 && !line.starts_with(' ')) {
+            auto xxx{std::ranges::find(line, ' ')};
+            if (xxx != line.end()) {
+                std::cout << line.substr(xxx - line.begin() + 3) << '\n';
+            } else {
+                std::cout << line << '\n';
+            }
+        }
+    });
 }
 
 /*
