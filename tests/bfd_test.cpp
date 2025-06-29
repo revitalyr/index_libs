@@ -11,14 +11,11 @@ auto out = &std::cerr;
 Strings exec(StrView cmd) {
     std::array<char, 1024> buffer;
     std::string output;
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(
-        popen(cmd.data(), "r"), pclose
-    );
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.data(), "r"), pclose);
     if (!pipe) {
         throw std::runtime_error("popen() failed!");
     }
-    while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe.get()) !=
-           nullptr) {
+    while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe.get()) != nullptr) {
         output += buffer.data();
     }
 
@@ -34,8 +31,7 @@ Strings exec(StrView cmd) {
 
 auto t() {
     auto lib{
-        BfdWrapper{"/mnt/d/work/codebrowser_fork/index_libs/tests/data/"
-                   "libLLVMDWARFLinker.a"}
+        BfdWrapper{"/mnt/d/work/codebrowser_fork/index_libs/tests/data/libLLVMDWARFLinker.a"}
     };
 
     *out << lib.filename() << ":\n";
@@ -51,9 +47,7 @@ auto t() {
 
 namespace TestData {
     std::filesystem::path THIS_FILE{__FILE__};
-    String const LIB{
-        (THIS_FILE.parent_path() / "data/libLLVMDWARFLinker.a").string()
-    };
+    String const LIB{(THIS_FILE.parent_path() / "data/libLLVMDWARFLinker.a").string()};
 };  // namespace TestData
 
 struct BfdWrapperTestsF : public testing::Test {

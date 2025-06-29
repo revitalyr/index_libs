@@ -21,19 +21,12 @@ export namespace Exception {
 
     struct CouldNotOpen : public std::runtime_error {
         explicit CouldNotOpen(StrView filename)
-            : std::runtime_error(
-                  std::format(
-                      "Could not open '{}': {}", filename,
-                      bfd_errmsg(bfd_get_error())
-                  )
-              ) {}
+            : std::runtime_error(std::format("Could not open '{}': {}", filename, bfd_errmsg(bfd_get_error()))) {}
     };
 
     struct BfdError : public std::runtime_error {
         explicit BfdError(StrView reason)
-            : std::runtime_error(
-                  std::format("{}: {}", reason, bfd_errmsg(bfd_get_error()))
-              ) {}
+            : std::runtime_error(std::format("{}: {}", reason, bfd_errmsg(bfd_get_error()))) {}
     };
 
 }  // namespace Exception
@@ -104,9 +97,7 @@ export struct BfdWrapper {
                 storage_needed / sizeof(SymbolTable::value_type)
             );
 
-            if (auto number_of_symbols =
-                    bfd_canonicalize_symtab(m_bfd, symbol_table.data());
-                number_of_symbols > 0) {
+            if (auto number_of_symbols = bfd_canonicalize_symtab(m_bfd, symbol_table.data()); number_of_symbols > 0) {
                 symbol_table.resize(number_of_symbols);
             } else {
                 throw Exception::BfdError("symbols");
@@ -152,14 +143,12 @@ export struct BfdRange {
         BfdWrapper m_archive;
 
         Iterator(BfdWrapper &bfd) : m_bfd{bfd} {
-            //*out << "Iterator: " << m_bfd.filename() << '\n';
             operator++();
         }
 
         bool operator==(Sentinel) { return !m_archive; }
         Iterator &operator++() {
-            if ((m_archive = m_bfd.open_next_archive(m_archive)) == false &&
-                bfd_get_error() != bfd_error_no_more_archived_files) {
+            if ((m_archive = m_bfd.open_next_archive(m_archive)) == false && bfd_get_error() != bfd_error_no_more_archived_files) {
                 bfd_perror("failed");
             }
             return *this;
@@ -168,7 +157,6 @@ export struct BfdRange {
     };
 
     BfdRange(BfdWrapper &bfd) : m_bfd{bfd} {
-        //        *out << "BfdRange: " << m_bfd.filename() << "\n";
     }
 
     Iterator begin() { return Iterator{m_bfd}; }
