@@ -34,9 +34,25 @@ struct Archive {
     StringSet m_members;
 
     Archive (StrView name) : m_name{ name } {}
+
+    bool operator==(Archive const &rhs) const noexcept = default;
 };
 
 using Archives = std::forward_list<Archive>;
+
+std::ostream &operator<<(std::ostream &os, StringSet const &strings) noexcept {
+    auto N{ strings.size() };
+
+    os << "[";
+    for (auto const &[i, str] : std::views::zip(std::views::iota(0), strings)) {
+        os << str << (i != N - 1 ? ", " : "");
+    }
+    return os << "]";
+}
+
+std::ostream &operator<<(std::ostream &os, Archive const &arc) noexcept {
+    return os << arc.m_name << ": " << arc.m_members;
+}
 
 void dump (StrView title, Archives const &archives) {
     std::print("{}:\n", title);
@@ -55,7 +71,7 @@ Archives get_content (StrView filename) {
 
     for (auto const &line : checked) {
         if (line.ends_with(':')) {
-            result.emplace_front(line);
+            result.emplace_front(line.substr(0, line.size() - 1));
         } else {
             std::smatch member;
 
@@ -93,12 +109,12 @@ TEST_F (BfdWrapperTestsF, IsArchive) {
 
 TEST_F (BfdWrapperTestsF, CompareWithNM) {
     auto verified{ get_content(m_file.filename()) };
-    dump("verified", verified);
+    // dump("verified", verified);
 
-    Archives content;
+    Archives from_bfd;
 
     for (auto const &bfd : BfdRange(m_file)) {
-        auto &archive{ content.emplace_front(bfd.filename()) };
+        auto &archive{ from_bfd.emplace_front(bfd.filename()) };
         for (auto const symbol : bfd.symbols()) {
             std::string_view name{ symbol->name };
             if (auto demangled = bfd.demangle(name); !demangled.empty()) {
@@ -106,5 +122,11 @@ TEST_F (BfdWrapperTestsF, CompareWithNM) {
             }
         };
     }
-    dump("content", content);
+    // dump("\nfrom_bfd", from_bfd);
+
+    // for (auto const &[nm, bfd] : std::views::zip(verified, from_bfd)) {
+    //     std::print("'{}' <-> '{}'", nm.m_name, bfd.m_name);
+    //     ASSERT_EQ(nm, bfd);
+    // }
+    ASSERT_EQ(verified, from_bfd);
 }
