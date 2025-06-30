@@ -49,23 +49,25 @@ void dump (StrView title, Archives const &archives) {
 }
 
 Archives get_content (StrView filename) {
-    auto     checked{ exec(std::format("nm -C {}", filename)) };
-    Archives result;
+    std::regex re{ "[0 ]+. (.+)" };
+    auto       checked{ exec(std::format("nm -C {}", filename)) };
+    Archives   result;
 
-    std::ranges::for_each(checked, [&result] (auto const &line) {
-        if (line.size() > 0 && !line.starts_with(' ')) {
-            if (auto member{ std::ranges::find(line, ' ') }; member != line.end()) {
-                assert(!result.empty());
+    for (auto const &line : checked) {
+        if (line.ends_with(':')) {
+            result.emplace_front(line);
+        } else {
+            std::smatch member;
 
-                if (auto name{ line.substr(member - line.begin() + 3) }; name.size() > 0 && name[0] != '.') {
+            if (std::regex_search(line, member, re) && member.size() > 1) {
+                if (auto name{ member.str(1) }; !name.starts_with('.')) {
+                    assert(!result.empty());
                     auto [_, is_new]{ result.front().m_members.emplace(name) };
                     assert(is_new);
                 }
-            } else {
-                result.emplace_front(line);
             }
         }
-    });
+    }
 
     return result;
 }
