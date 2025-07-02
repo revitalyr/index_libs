@@ -38,7 +38,10 @@ function(add_thirdparty name repo tag include)
                         )
 
     include_directories(${EPRG_INCLUDE_DIR})
+    add_dependencies(${PROJECT_NAME} ${EPRG_NAME})
 endfunction()
+
+add_executable(${PROJECT_NAME})
 
 add_thirdparty(args       "https://github.com/Taywee/args"            "6.4.7" "")
 add_thirdparty(sqlite_orm "https://github.com/fnc12/sqlite_orm"       "v1.9.1" include)
@@ -47,19 +50,13 @@ add_thirdparty(termcolor  "https://github.com/ikalnytskyi/termcolor"  "v2.1.0" i
 find_package(SQLite3 REQUIRED)
 include_directories(${SQLite3_INCLUDE_DIR})
 
-#target_include_directories(index_libs PRIVATE ${ARGS_INCLUDE_DIR})
-#target_include_directories(index_libs PRIVATE ${SQLITE_ORM_INCLUDE_DIR})
-#target_include_directories(index_libs PRIVATE ${TERMCOLOR_INCLUDE_DIR})
-
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 list(JOIN dirs : includes)
 message(STATUS "INCLUDE_DIRECTORIES='${dirs}'")
 message(STATUS "includes='${includes}'")
 set(ENV{CPLUS_INCLUDE_PATH} ${includes})
 
-add_executable(index_libs)
-
-target_sources(index_libs
+target_sources(${PROJECT_NAME}
     PRIVATE FILE_SET CXX_MODULES FILES
         modules/args_module.ixx
         modules/sqlite_orm_module.ixx
@@ -67,13 +64,13 @@ target_sources(index_libs
 )
 
 if (WIN32)
-    target_sources(index_libs
+    target_sources(${PROJECT_NAME}
         PRIVATE FILE_SET CXX_MODULES FILES
             modules/boost_module.ixx
     )
 endif (WIN32)
 
-target_compile_features(index_libs 
+target_compile_features(${PROJECT_NAME}
   PRIVATE   cxx_std_23
   INTERFACE cxx_std_20)
 
