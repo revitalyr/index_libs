@@ -1,24 +1,21 @@
 cmake_minimum_required(VERSION 4.0 FATAL_ERROR)
 
-# Set experimental flag to enable `import std` support from CMake.
-# This must be enabled before C++ language support.
-set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
-  # This specific value changes as experimental support evolves. See
-  # `Help/dev/experimental.rst` in the CMake source corresponding to
-  # your CMake build for the exact value to use.
-  "0e5b6991-d74f-4b3d-a41c-cf096e0b2508")
-
 set(CMAKE_CXX_STANDARD 23)
-set(CXX_MODULE_STD True)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+#set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "d0edc3af-4c50-42ea-a356-e2862fe7a444")
+set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "a9e1cf81-9932-4810-974b-6eccaf14e457")
+set(CMAKE_CXX_FLAGS '-stdlib=libc++')
+
+set(CMAKE_CXX_MODULE_STD 1)
 
 project(index_libs VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
 set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
 
-set(CMAKE_CXX_STANDARD_REQUIRED YES)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_SCAN_FOR_MODULES ON)
+#set(CMAKE_CXX_SCAN_FOR_MODULES ON)
 
 include(ExternalProject)
 
@@ -60,7 +57,7 @@ message(STATUS "INCLUDE_DIRECTORIES='${dirs}'")
 message(STATUS "includes='${includes}'")
 set(ENV{CPLUS_INCLUDE_PATH} ${includes})
 
-add_executable(index_libs index_libs.cpp storage.cpp)
+add_executable(index_libs)
 
 target_sources(index_libs
     PRIVATE FILE_SET CXX_MODULES FILES
@@ -80,3 +77,4 @@ target_compile_features(index_libs
   PRIVATE   cxx_std_23
   INTERFACE cxx_std_20)
 
+add_subdirectory(src)
