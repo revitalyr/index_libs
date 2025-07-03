@@ -1,4 +1,4 @@
-target_sources(index_libs
+target_sources(${PROJECT_NAME}
     PRIVATE
         main.cpp
 )
