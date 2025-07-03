@@ -49,15 +49,16 @@ add_thirdparty(termcolor  "https://github.com/ikalnytskyi/termcolor"  "v2.1.0" i
 
 find_package(SQLite3 REQUIRED)
 include_directories(${SQLite3_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} SQLite::SQLite3)
 
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 list(JOIN dirs : includes)
-message(STATUS "INCLUDE_DIRECTORIES='${dirs}'")
-message(STATUS "includes='${includes}'")
+#message(STATUS "INCLUDE_DIRECTORIES='${dirs}'")
+#message(STATUS "includes='${includes}'")
 set(ENV{CPLUS_INCLUDE_PATH} ${includes})
 
 target_sources(${PROJECT_NAME}
-    PRIVATE FILE_SET CXX_MODULES FILES
+    PUBLIC FILE_SET CXX_MODULES FILES
         modules/args_module.ixx
         modules/sqlite_orm_module.ixx
         modules/termcolor_module.ixx
@@ -74,4 +75,5 @@ target_compile_features(${PROJECT_NAME}
   PRIVATE   cxx_std_23
   INTERFACE cxx_std_20)
 
+add_subdirectory(lib)
 add_subdirectory(src)
