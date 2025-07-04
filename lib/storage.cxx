@@ -48,7 +48,7 @@ namespace db {
     }
 
     auto storage = make_storage(
-        "db/libraries.db",
+        std::filesystem::temp_directory_path() / "db/libraries.db",
         make_index("idx_symbol", &Symbol::m_symbol),
         make_table("content", make_column("library", &Symbol::m_library), make_column("mangled", &Symbol::m_mangled), make_column("m_unmangled", &Symbol::m_unmangled), make_column("symbol", &Symbol::m_symbol))
     );
