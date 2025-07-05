@@ -1,4 +1,4 @@
-export module Storage;
+export module storage_module;
 
 import std;
 import sqlite_orm_module;
