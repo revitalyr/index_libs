@@ -51,6 +51,8 @@ find_package(SQLite3 REQUIRED)
 include_directories(${SQLite3_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} SQLite::SQLite3)
 
+include_directories(${CMAKE_SOURCE_DIR})
+
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 list(JOIN dirs : includes)
 #message(STATUS "INCLUDE_DIRECTORIES='${dirs}'")
