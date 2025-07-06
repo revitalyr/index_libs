@@ -1,8 +1,11 @@
 // work.cpp
 
-import std;
 #include <cassert>
 #include <cstdlib>
+
+// #include "lib/utils.h"
+
+import std;
 
 namespace fs = std::filesystem;
 
@@ -26,25 +29,35 @@ namespace {
 #if __linux__
     StrView lib_extension{ ".a" };
 
-    void build_index (fs::path const &path) {
+    StrView extract_symbol (StrView s) {
+        auto pos_bracket{ s.find('(') };
+        auto beginning{ s.substr(0, pos_bracket) };
+        auto pos_colon{ beginning.rfind(':') };
+        return beginning.substr(pos_colon + 1);
+    }
+
+    void build_index (fs::path const &path, db::Storage &storage) {
         std::cout << path << std::endl;
 
         try {
-            db::Storage storage;
+            BfdWrapper lib{ path.string() };
 
-            for (auto const &bfd : BfdRange(BfdWrapper{ path })) {
+            for (auto const &bfd : BfdRange(lib)) {
                 auto const &library{ bfd.filename() };
                 for (auto const member : bfd.symbols()) {
                     std::string_view mangled{ member->name };
-                    auto             demangled{ bfd.demangle(name) };
-                    auto             symbol{ demangled };  // TO_DO
+                    auto             demangled{ bfd.demangle(mangled) };
+                    auto             symbol{ extract_symbol(demangled) };
 
-                    storage.insert(db::Symbol{ library, symbol, mangled, demangled });
+                    storage.insert(db::Symbol{ library, String(symbol), String(mangled), String(demangled) });
                 };
             }
         } catch (...) {
-            rethrow(__func__, path);
+            // rethrow(__func__, path);
+            std::rethrow_exception(std::current_exception());
         }
+    }
+
 #else
     StrView          lib_extension{ ".lib" };
     std::regex const RE{ R"(^[0-9A-F]{3} .{29}External[^?]*\?([^ ]+) (.+))" };
@@ -82,60 +95,62 @@ namespace {
         }
     }
 #endif
-    }  // namespace
+}  // namespace
 
-    int main (int argc, char *argv[]) {
-        args::ArgumentParser parser("Indexing COFF archives contents and searching archives by a given symbol");
-        args::HelpFlag       help(parser, "help", "Display this help menu", { 'h', "help" }, {});
-        args::Group          group(parser, "This arguments are exclusive:", args::Group::Validators::Xor);
-        ArgPath              lib_path(group, "BUILD", "Path to the library (or directory of libraries) for which the index will be built", { 'b', "build" });
-        ArgSymbol            symbol_arg(group, "SYMBOL", "Symbol to find");
-        auto                 args_ok = false;
+int main (int argc, char *argv[]) {
+    args::ArgumentParser parser("Indexing COFF archives contents and searching archives by a given symbol");
+    args::HelpFlag       help(parser, "help", "Display this help menu", { 'h', "help" }, {});
+    args::Group          group(parser, "This arguments are exclusive:", args::Group::Validators::Xor);
+    ArgPath              lib_path(group, "BUILD", "Path to the library (or directory of libraries) for which the index will be built", { 'b', "build" });
+    ArgSymbol            symbol_arg(group, "SYMBOL", "Symbol to find");
+    auto                 args_ok = false;
 
-        try {
-            parser.helpParams.width = 120;
-            parser.ParseCLI(argc, argv);
+    try {
+        db::Storage storage;
 
-            if (lib_path) {
-                auto path = args::get(lib_path);
+        parser.helpParams.width = 120;
+        parser.ParseCLI(argc, argv);
 
-                if (!fs::exists(path)) {
-                    throw std::runtime_error(std::format("'{}' does not exist", path));
-                }
+        if (lib_path) {
+            auto path = args::get(lib_path);
 
-                args_ok = true;
+            if (!fs::exists(path)) {
+                throw std::runtime_error(std::format("'{}' does not exist", path));
+            }
 
-                auto f_type = fs::status(path).type();
-                switch (f_type) {
-                    case fs::file_type::regular:
-                        build_index(path, storage);
-                        break;
-                    case fs::file_type::directory: {
-                        for (fs::directory_entry const &entry : fs::recursive_directory_iterator(path)) {
-                            if (entry.path().extension() == lib_extension) {
-                                build_index(entry, storage);
-                            }
+            args_ok = true;
+
+            auto f_type = fs::status(path).type();
+            switch (f_type) {
+                case fs::file_type::regular:
+                    build_index(path, storage);
+                    break;
+                case fs::file_type::directory: {
+                    for (fs::directory_entry const &entry : fs::recursive_directory_iterator(path)) {
+                        if (entry.path().extension() == lib_extension) {
+                            build_index(entry, storage);
                         }
-                        break;
                     }
-                    default:
-                        throw std::runtime_error(std::format("'{}' has wrong type {}", path, static_cast<int>(f_type)));
+                    break;
                 }
+                default:
+                    throw std::runtime_error(std::format("'{}' has wrong type {}", path, static_cast<int>(f_type)));
             }
-
-            if (symbol_arg) {
-                auto const &symbol = args::get(symbol_arg);
-                auto const  libs{ storage.find(symbol) };
-
-                for (auto const &lib : libs) {
-                    std::cout << lib << '\n';
-                }
-            }
-
-        } catch (std::exception const &e) {
-            std::cerr << typeid(e).name() << ": " << e.what() << std::endl;
-            return EXIT_FAILURE;
         }
 
-        return EXIT_SUCCESS;
+        if (symbol_arg) {
+            auto const &symbol = args::get(symbol_arg);
+            auto const  libs{ storage.find(symbol) };
+
+            for (auto const &lib : libs) {
+                std::cout << lib << '\n';
+            }
+        }
+
+    } catch (std::exception const &e) {
+        std::cerr << typeid(e).name() << ": " << e.what() << std::endl;
+        return EXIT_FAILURE;
     }
+
+    return EXIT_SUCCESS;
+}
