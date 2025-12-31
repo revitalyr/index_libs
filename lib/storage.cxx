@@ -9,6 +9,7 @@ module;
 #include <ostream>
 #include <memory>
 #include <iostream>
+#include <unordered_set>
 
 export module storage_module;
 
@@ -112,6 +113,7 @@ namespace db {
         Strings find(String const &query) {
             ensure_initialized_for_read();
             Strings result;
+            std::unordered_set<String> seen;  // Track unique results
 
             unqlite_kv_cursor* cursor;
             int rc = unqlite_kv_cursor_init(m_db, &cursor);
@@ -144,7 +146,11 @@ namespace db {
 
                 // Check if symbol or unmangled contains query (LIKE %query%)
                 if (sym.find(query) != String::npos || unmangled.find(query) != String::npos) {
-                    result.push_back(std::format("{}: {}", lib, unmangled));
+                    String entry = std::format("{}: {}", lib, unmangled);
+                    // Only add if not already seen
+                    if (seen.insert(entry).second) {
+                        result.push_back(std::move(entry));
+                    }
                 }
             }
 
