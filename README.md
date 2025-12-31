@@ -1,35 +1,22 @@
 # index_libs
 
-Building an index of symbols exported from COFF libraries and searching for libraries by symbol.
-
-_index_libs.exe_ -h gives:
-
-  index_libs.exe {OPTIONS} [SYMBOL]
-  
-    Building an index of symbols exported from COFF libraries and searching for libraries by symbol.
-
-  OPTIONS:
-
-      -h, --help                        Display this help menu
-      This arguments are exclusive:
-        -b[BUILD], --build=[BUILD]        Path to the library for which the index is built
-        SYMBOL                            Symbol to find
-      "--" can be used to terminate flag options and force all following arguments to be treated as positional options
+Build an index of symbols exported from static libraries (COFF/ELF archives) and search for libraries by symbol name.
 
 ## Features
 
 - Index symbols from `.lib` files (Windows) or `.a` files (Linux)
 - Search for symbols by substring (case-sensitive)
+- Demangle C++ symbol names for readable output
 - Export database to CSV format
-- Uses UnQLite embedded database for storage
+- Uses UnQLite embedded database for persistent storage
+- Cross-platform: Windows and Linux
 
 ## Requirements
 
-- CMake 4.0 or higher
-- C++23 compatible compiler:
-  - **Windows**: Visual Studio 2022 (17.0+)
-  - **Linux**: Clang 18+ with libc++, or GCC 14+
-- vcpkg (optional, for dependency management)
+- CMake 3.28 or higher
+- C++23 compatible compiler with modules support:
+  - **Windows**: Visual Studio 2022 (17.6+)
+  - **Linux**: Clang 18+ with libc++
 
 ### Linux Prerequisites
 
